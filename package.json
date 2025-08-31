@@ -1,0 +1,39 @@
+{
+  "name": "request-profiler",
+  "version": "1.0.1",
+  "description": "A lightweight middleware for Node.js web frameworks that logs request/response details with optional persistence",
+  "main": "index.js",
+  "scripts": {
+    "test": "node examples/express-example.js",
+    "example:express": "node examples/express-example.js",
+    "example:fastify": "node examples/fastify-example.js"
+  },
+  "keywords": [
+    "middleware",
+    "logging",
+    "profiler",
+    "express",
+    "fastify",
+    "performance",
+    "monitoring",
+    "http"
+  ],
+  "author": "Dinesh S",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^5.1.0",
+    "fastify": "^5.5.0",
+    "sqlite3": "^5.1.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dineshsaravanan3/request-profiler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dineshsaravanan3/request-profiler/issues"
+  },
+  "homepage": "https://github.com/dineshsaravanan3/request-profiler#readme"
+}
