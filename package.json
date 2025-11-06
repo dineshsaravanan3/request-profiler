@@ -1,6 +1,6 @@
 {
   "name": "request-profiler",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A lightweight middleware for Node.js web frameworks that logs request/response details with optional persistence",
   "main": "index.js",
   "scripts": {
