@@ -1,6 +1,6 @@
 {
   "name": "request-profiler",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "A lightweight middleware for Node.js web frameworks that logs request/response details with optional persistence",
   "main": "index.js",
   "scripts": {
@@ -21,11 +21,25 @@
   "author": "Dinesh S",
   "license": "MIT",
   "dependencies": {
-    "express": "^5.1.0",
-    "fastify": "^5.5.0"
+  },
+  "devDependencies": {
+    "express": "^4.18.2",
+    "fastify": "^4.24.3"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0",
+    "fastify": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    }
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
   },
   "repository": {
     "type": "git",
@@ -34,5 +48,11 @@
   "bugs": {
     "url": "https://github.com/dineshsaravanan3/request-profiler/issues"
   },
-  "homepage": "https://github.com/dineshsaravanan3/request-profiler#readme"
+  "homepage": "https://github.com/dineshsaravanan3/request-profiler#readme",
+  "files": [
+    "index.js",
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ]
 }
