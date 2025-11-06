@@ -1,5 +1,5 @@
 const Logger = require('./lib/logger');
-const StorageManager = require('./lib/storage');
+// const StorageManager = require('./lib/storage');
 
 /**
  * Request Profiler Middleware
@@ -14,7 +14,7 @@ const StorageManager = require('./lib/storage');
  */
 function requestProfiler(options = {}) {
   const config = {
-    storage: options.storage || false,
+    // storage: options.storage || false,
     slowThreshold: options.slowThreshold || 500,
     format: options.format || 'text',
     logFile: options.logFile || 'logs.json',
@@ -24,14 +24,14 @@ function requestProfiler(options = {}) {
   };
 
   const logger = new Logger(config);
-  const storage = config.storage ? new StorageManager(config) : null;
+  // const storage = config.storage ? new StorageManager(config) : null;
 
-  // Initialize storage if needed
-  if (storage) {
-    storage.init().catch(err => {
-      console.error('Failed to initialize storage:', err.message);
-    });
-  }
+  // // Initialize storage if needed
+  // if (storage) {
+  //   storage.init().catch(err => {
+  //     console.error('Failed to initialize storage:', err.message);
+  //   });
+  // }
 
   return function requestProfilerMiddleware(req, res, next) {
     const startTime = Date.now();
@@ -61,11 +61,11 @@ function requestProfiler(options = {}) {
       }
 
       // Store to persistent storage
-      if (storage) {
-        storage.store(logData).catch(err => {
-          console.error('Failed to store log:', err.message);
-        });
-      }
+      // if (storage) {
+      //   storage.store(logData).catch(err => {
+      //     console.error('Failed to store log:', err.message);
+      //   });
+      // }
 
       // Call original end method
       originalEnd.apply(this, args);
