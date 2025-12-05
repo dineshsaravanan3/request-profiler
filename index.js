@@ -1,5 +1,5 @@
 const Logger = require('./lib/logger');
-// const StorageManager = require('./lib/storage');
+const StorageManager = require('./lib/storage');
 
 /**
  * Request Profiler Middleware
@@ -12,27 +12,34 @@ const Logger = require('./lib/logger');
  * @param {boolean} options.silent - Disable console output (default: false)
  * @returns {Function} Middleware function
  */
+// @ts-ignore
 function requestProfiler(options = {}) {
   const config = {
     // storage: options.storage || false,
+    // @ts-ignore
     slowThreshold: options.slowThreshold || 500,
+    // @ts-ignore
     format: options.format || 'text',
+    // @ts-ignore
     logFile: options.logFile || 'logs.json',
+    // @ts-ignore
     dbFile: options.dbFile || 'logs.db',
+    // @ts-ignore
     silent: options.silent || false,
     ...options
   };
 
   const logger = new Logger(config);
-  // const storage = config.storage ? new StorageManager(config) : null;
+  const storage = config.storage ? new StorageManager(config) : null;
 
   // // Initialize storage if needed
-  // if (storage) {
-  //   storage.init().catch(err => {
-  //     console.error('Failed to initialize storage:', err.message);
-  //   });
-  // }
+  if (storage) {
+    storage.init().catch(err => {
+      console.error('Failed to initialize storage:', err.message);
+    });
+  }
 
+  // @ts-ignore
   return function requestProfilerMiddleware(req, res, next) {
     const startTime = Date.now();
     const startDate = new Date();
@@ -41,6 +48,7 @@ function requestProfiler(options = {}) {
     const originalEnd = res.end;
 
     // Override end method to capture response
+    // @ts-ignore
     res.end = function(...args) {
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -61,11 +69,13 @@ function requestProfiler(options = {}) {
       }
 
       // Store to persistent storage
-      // if (storage) {
-      //   storage.store(logData).catch(err => {
-      //     console.error('Failed to store log:', err.message);
-      //   });
-      // }
+      // @ts-ignore
+      if (storage) {
+        // @ts-ignore
+        storage.store(logData).catch(err => {
+          console.error('Failed to store log:', err.message);
+        });
+      }
 
       // Call original end method
       originalEnd.apply(this, args);
