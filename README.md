@@ -10,6 +10,8 @@ A lightweight middleware for Node.js web frameworks that logs request/response d
 - ⚡ **Performance Alerts**: Highlight slow requests automatically
 - 🎛️ **Configurable**: Customize log format, storage, and thresholds
 - 📊 **Lightweight**: Minimal overhead and dependencies
+- 🕒 **Local & ISO Timestamps**: Includes timestamp and timestampLocal
+- 📅 **Daily Log Splitting**: Automatically creates YYYY-MM-DD.json files
 
 ## Installation
 
@@ -28,10 +30,28 @@ const requestProfiler = require("request-profiler");
 const app = express();
 
 // Add the middleware
+const express = require("express");
+const requestProfiler = require("request-profiler");
+const path = require("path");
+
+const app = express();
+
+// Add the middleware
 app.use(requestProfiler({ 
-  storage: "json",
-  slowThreshold: 500
+  storage: 'json',
+  storagepath: path.resolve('C:/Users/xyz/OneDrive/Documents/merger_safe'), // windows / macOS / linux friendly
+  slowThreshold: 200,
+  format: 'text',
+  daily: true,      // <-- auto-create 2025-12-06.json, etc.
+  // maxLines: 2000 // optional: only trims when provided
 }));
+
+app.get("/api/users", (req, res) => {
+  res.json({ users: ["Alice", "Bob"] });
+});
+
+app.listen(3000);
+
 
 app.get("/api/users", (req, res) => {
   res.json({ users: ["Alice", "Bob"] });
@@ -46,29 +66,38 @@ app.listen(3000);
 const fastify = require('fastify')();
 const requestProfiler = require("request-profiler");
 
-// Register as a hook
-fastify.addHook('onRequest', (request, reply, done) => {
-  const middleware = requestProfiler({ storage: "sqlite" });
-  middleware(request.raw, reply.raw, done);
+// Create the middleware once
+const profiler = requestProfiler({
+  storage: "json",
+  daily: true,
 });
 
-fastify.get('/api/users', async (request, reply) => {
+fastify.addHook('onRequest', (request, reply, done) => {
+  profiler(request.raw, reply.raw, done);
+});
+
+fastify.get('/api/users', async () => {
   return { users: ['John', 'Jane'] };
 });
 
 await fastify.listen({ port: 3000 });
+
 ```
 
 ## Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `storage` | `string\|boolean` | `false` | Storage type: `'json'`, `'sqlite'`, or `false` |
-| `slowThreshold` | `number` | `500` | Threshold in ms to mark requests as slow |
-| `format` | `string` | `'text'` | Log format: `'text'`, `'json'`, or `'both'` |
-| `logFile` | `string` | `'logs.json'` | Custom JSON log file path |
-| `dbFile` | `string` | `'logs.db'` | Custom SQLite database file path |
-| `silent` | `boolean` | `false` | Disable console output |
+| Option                        | Type              | Default         | Description                           |
+| ----------------------------- | ----------------- | --------------- | ------------------------------------- |
+| `storage`                     | `string\|boolean` | `false`         | `'json'`, `'sqlite'`, or `false`      |
+| `storagepath` / `storagePath` | `string`          | `null`          | Directory or full file path for logs  |
+| `slowThreshold`               | `number`          | `500`           | Mark requests slower than this (ms)   |
+| `format`                      | `string`          | `'text'`        | `'text'`, `'json'`, or `'both'`       |
+| `daily`                       | `boolean`         | `false`         | Auto-create logs as `YYYY-MM-DD.json` |
+| `maxLines`                    | `number`          | `undefined`     | Only trims logs **if provided**       |
+| `logFile`                     | `string`          | `'logs.ndjson'` | Fallback filename when daily=false    |
+| `dbFile`                      | `string`          | `'logs.db'`     | SQLite filename                       |
+| `silent`                      | `boolean`         | `false`         | Disable console output                |
+
 
 ## Examples
 
@@ -134,15 +163,17 @@ Logs are stored as an array of objects:
 ```json
 [
   {
-    "timestamp": "2025-01-01T01:25:14.123Z",
+    "timestamp": "2025-12-06T01:25:14.123Z",
+    "timestampLocal": "12/6/2025, 6:55:14 AM",
     "method": "GET",
     "path": "/api/users",
     "status": 200,
     "durationMs": 45,
     "userAgent": "Mozilla/5.0...",
-    "ip": "127.0.0.1"
+    "ip": "::1"
   }
 ]
+
 ```
 
 ### SQLite Storage

@@ -1,87 +1,120 @@
+// @ts-nocheck
+// index.js
+const path = require('path');
+const fs = require('fs');
 const Logger = require('./lib/logger');
 const StorageManager = require('./lib/storage');
 
+// Please raise issue on github or mail "dineshsaravanan93@gmail.com" if anything you found! it will be helpful to improvise this package
+
 /**
  * Request Profiler Middleware
- * @param {Object} options - Configuration options
- * @param {string|boolean} options.storage - Storage type: 'json', 'sqlite', or false
- * @param {number} options.slowThreshold - Threshold in ms to mark requests as slow (default: 500)
- * @param {string} options.format - Log format: 'text', 'json', or 'both' (default: 'text')
- * @param {string} options.logFile - Custom log file path (default: 'logs.json')
- * @param {string} options.dbFile - Custom SQLite database file path (default: 'logs.db')
- * @param {boolean} options.silent - Disable console output (default: false)
- * @returns {Function} Middleware function
+ * options:
+ *   storage: 'json' | 'sqlite'(implementation pending) | false
+ *   storagepath / storagePath: directory or full file path for logs (paths ok)
+ *   slowThreshold: ms to mark slow (default 500)
+ *   format: 'text' | 'json' | 'both' (default 'text')
+ *   logFile: fallback filename (default 'logs.ndjson')
+ *   dbFile: sqlite file (default 'logs.db')
+ *   silent: boolean (default false)
  */
-// @ts-ignore
 function requestProfiler(options = {}) {
+  const opts = options || {};
+
   const config = {
-    // storage: options.storage || false,
-    // @ts-ignore
-    slowThreshold: options.slowThreshold || 500,
-    // @ts-ignore
-    format: options.format || 'text',
-    // @ts-ignore
-    logFile: options.logFile || 'logs.json',
-    // @ts-ignore
-    dbFile: options.dbFile || 'logs.db',
-    // @ts-ignore
-    silent: options.silent || false,
-    ...options
+    storage: opts.storage || false,
+    slowThreshold: (opts.slowThreshold ?? 500),
+    format: opts.format || 'text',
+    logFile: opts.logFile || 'logs.ndjson',
+    dbFile: opts.dbFile || 'logs.db',
+    silent: opts.silent || false,
+    storagepath: opts.storagepath || opts.storagePath || null,
+    maxRotateBytes: opts.maxRotateBytes || 1024 * 1024 * 5, 
+    maxLines: opts.maxLines || 1000,
+    ...opts
   };
 
-  const logger = new Logger(config);
-  const storage = config.storage ? new StorageManager(config) : null;
+  if (config.storagepath) {
+    const resolved = path.resolve(config.storagepath);
+    try {
+      const stat = fs.existsSync(resolved) && fs.statSync(resolved);
+      if (stat && stat.isDirectory()) {
+        config.logFile = path.join(resolved, config.logFile);
+      } else {
+        config.logFile = resolved;
+      }
+    } catch (err) {
+      config.logFile = resolved;
+    }
+  }
 
-  // // Initialize storage if needed
+  const logger = new Logger(config);
+
+  let storage = config.storage ? new StorageManager(config) : null;
+
   if (storage) {
     storage.init().catch(err => {
-      console.error('Failed to initialize storage:', err.message);
+      console.error('RequestProfiler: failed to initialize storage:', err && err.message ? err.message : err);
+      storage = null;
     });
   }
 
-  // @ts-ignore
   return function requestProfilerMiddleware(req, res, next) {
     const startTime = Date.now();
+
+    // we capture startDate here
     const startDate = new Date();
 
-    // Store original end method
-    const originalEnd = res.end;
-
-    // Override end method to capture response
-    // @ts-ignore
-    res.end = function(...args) {
+    // finishing final log write happens here
+    const onFinish = () => {
       const endTime = Date.now();
       const duration = endTime - startTime;
+      const now = new Date();
 
       const logData = {
-        timestamp: startDate.toISOString(),
+        // ISO  timestamp and also a local timestamp here
+        timestamp: now.toISOString(),
+        timestampLocal: now.toLocaleString(),
         method: req.method,
-        path: req.url || req.path,
+        path: req.originalUrl || req.url || req.path || req.url,
         status: res.statusCode,
         durationMs: duration,
-        userAgent: req.get('User-Agent') || '',
-        ip: req.ip || req.connection.remoteAddress || ''
+        userAgent: (req.get && req.get('User-Agent')) || (req.headers && (req.headers['user-agent'] || req.headers['User-Agent'])) || '',
+        ip: (req.headers && (req.headers['x-forwarded-for'] || req.headers['X-Forwarded-For'])) || req.ip || (req.connection && req.connection.remoteAddress) || (req.socket && req.socket.remoteAddress) || ''
       };
 
-      // Log to console
+      // L silent console logic
       if (!config.silent) {
-        logger.logToConsole(logData);
+        try {
+          logger.logToConsole(logData);
+        } catch (err) {
+          console.error('RequestProfiler: logger error', err && err.message ? err.message : err);
+        }
       }
 
-      // Store to persistent storage
-      // @ts-ignore
       if (storage) {
-        // @ts-ignore
         storage.store(logData).catch(err => {
-          console.error('Failed to store log:', err.message);
+          console.error('RequestProfiler: failed to store log:', err && err.message ? err.message : err);
         });
       }
 
-      // Call original end method
-      originalEnd.apply(this, args);
+      cleanup();
     };
 
-    next();
+    const onClose = () => {
+      // connection abort
+      cleanup();
+    };
+
+    const cleanup = () => {
+      res.removeListener('finish', onFinish);
+      res.removeListener('close', onClose);
+    };
+
+    res.on('finish', onFinish);
+    res.on('close', onClose);
+
+    return next && typeof next === 'function' ? next() : undefined;
   };
 }
 
